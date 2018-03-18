@@ -234,16 +234,6 @@ build() {
 
 build-liblua.a () {
   cat > $DEST/lua_compat52.h <<EOF
-#include <lua.h>
-#if LUA_VERSION_NUM >= 502
-#define luaL_reg luaL_Reg
-#define luaL_register(L, name, funcs) ({ \
-  if(name) lua_getglobal(L, name); else lua_newtable(L); \
-  if(lua_isnil(L, -1)) { lua_pop(L, 1); lua_newtable(L); } \
-  luaL_setfuncs(L, funcs, 0); \
-})
-#define luaL_putchar(B, c) luaL_addchar(B, c)
-#endif
 EOF
 
   [[ $LIBLUA == no ]] && return 0

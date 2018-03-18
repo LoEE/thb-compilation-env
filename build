@@ -1,0 +1,975 @@
+#!/bin/zsh
+
+set -x -e
+
+ARCH=$1
+DEST=out/$ARCH
+
+case $ARCH in
+  win32)
+    export PATH="/usr/local/i686-w64-mingw32-20150524.loee.pl/bin:$PATH"
+    ARCHPREFIX=i686-w64-mingw32
+    CC=$ARCHPREFIX-gcc
+    CXX=$ARCHPREFIX-g++
+    AR=$ARCHPREFIX-ar
+    LIBUDEV=no
+    POSIX=no
+    cfl=(-DUNICODE -D_UNICODE -m32)
+    makelib () {
+      $AR rcs "$@"
+    }
+    ;;
+  win64)
+    export PATH="/usr/local/x86_64-w64-mingw32-20150524.loee.pl/bin:$PATH"
+    ARCHPREFIX=x86_64-w64-mingw32
+    CC=$ARCHPREFIX-gcc
+    CXX=$ARCHPREFIX-g++
+    AR=$ARCHPREFIX-ar
+    LIBUDEV=no
+    POSIX=no
+    cfl=(-DUNICODE -D_UNICODE -m64)
+    makelib () {
+      $AR rcs "$@"
+    }
+    ;;
+  osx)
+    ARCHPREFIX=llvm
+    CC=$ARCHPREFIX-gcc
+    CXX=$ARCHPREFIX-g++
+    AR=ar
+    LIBUDEV=no
+    cfl=(-arch i386 -arch x86_64 -mmacosx-version-min=10.7)
+    makelib () {
+      libtool -static -s -o "$@"
+    }
+    makesharedlib () {
+      gcc $cfl -bundle -undefined dynamic_lookup -o "$@"
+    }
+    ;;
+  osx-jit)
+    ARCHPREFIX=llvm
+    CC=$ARCHPREFIX-gcc
+    CXX=$ARCHPREFIX-g++
+    AR=ar
+    LIBUDEV=no
+    LIBLUA=no
+    cfl=(-arch i386 -arch x86_64 -mmacosx-version-min=10.7 -I/usr/local/include/luajit-2.0/)
+    makelib () {
+      libtool -static -s -o "$@"
+    }
+    makesharedlib () {
+      gcc $cfl -bundle -undefined dynamic_lookup -o "$@"
+    }
+    ;;
+  linux)
+    ARCHPREFIX=i686-loee-linux-gnu
+    export PATH="/usr/local/${ARCHPREFIX}-20150122.loee.pl/bin:$PATH"
+    CC=$ARCHPREFIX-gcc
+    CXX=$ARCHPREFIX-g++
+    AR=$ARCHPREFIX-ar
+    cfl=(-D__Linux26__ -DNAME_MAX=FILENAME_MAX -m32)
+    ldfl=(-lm)
+    makelib () {
+      $AR rcs "$@"
+    }
+    makesharedlib () {
+      $CC -shared -o "$@"
+    }
+    ;;
+  linux64)
+    ARCHPREFIX=x86_64-loee-linux-gnu
+    export PATH="/usr/local/${ARCHPREFIX}-20150122.loee.pl/bin:$PATH"
+    CC=$ARCHPREFIX-gcc
+    CXX=$ARCHPREFIX-g++
+    AR=$ARCHPREFIX-ar
+    cfl=(-D__Linux26__ -DNAME_MAX=FILENAME_MAX -m64)
+    makelib () {
+      $AR rcs "$@"
+    }
+    makesharedlib () {
+      $CC -shared -o "$@"
+    }
+    ;;
+  linux-armhf)
+    ARCHPREFIX=arm-linux-gnueabi
+    export PATH="/usr/local/arm-loee-linux-gnueabi-20150122.loee.pl/bin:$PATH"
+    CC=$ARCHPREFIX-gcc
+    CXX=$ARCHPREFIX-g++
+    AR=$ARCHPREFIX-ar
+    cfl=(-D__Linux26__ -lm)
+    makelib () {
+      $AR rcs "$@"
+    }
+    makesharedlib () {
+      $CC -shared -o "$@"
+    }
+    ;;
+  # openwrt-i386)
+  #   . ./setupwrt-i386
+  #   ARCHPREFIX=i486-openwrt-linux-uclibc
+  #   CC=$ARCHPREFIX-gcc
+  #   AR=$ARCHPREFIX-ar
+  #   DEST=out/$1
+  #   LIBLUA=no
+  #   cfl=(-D__Linux26__)
+  #   makelib () {
+  #     $AR rcs "$@"
+  #   }
+  #   ;;
+  openwrt-mips)
+    export BASE="/opt/openwrt/staging_dir"
+    export STAGING_DIR="$BASE/target-mips_34kc_musl-1.1.11"
+    export PATH="$BASE/toolchain-mips_34kc_gcc-4.8-linaro_musl-1.1.11/bin:$PATH"
+    ARCHPREFIX=mips-openwrt-linux
+    CC=$ARCHPREFIX-gcc
+    CXX=$ARCHPREFIX-g++
+    AR=$ARCHPREFIX-ar
+    LIBLUA=no
+    cfl=(-D__Linux26__ -mips16 -minterlink-mips16)
+    makelib () {
+      $AR rcs "$@"
+    }
+    makesharedlib () {
+      $CC -shared -o "$@"
+    }
+    ;;
+  openwrt-mips-uClibc)
+    #export BASE="/opt/openwrt/staging_dir"
+    #export STAGING_DIR="$BASE/target-mips_34kc_uClibc-0.9.33.2"
+    #export PATH="$BASE/toolchain-mips_34kc_gcc-4.8-linaro_uClibc-0.9.33.2/bin:$PATH"
+    export BASE="/Volumes/OpenWRT/staging_dir"
+    export STAGING_DIR="$BASE/target-mips_34kc_uClibc-0.9.33.2"
+    export PATH="$BASE/toolchain-mips_34kc_gcc-4.8-linaro_uClibc-0.9.33.2/bin:$PATH"
+    ARCHPREFIX=mips-openwrt-linux
+    CC=$ARCHPREFIX-gcc
+    CXX=$ARCHPREFIX-g++
+    AR=$ARCHPREFIX-ar
+    LIBLUA=no
+    cfl=(-D__Linux26__ -mips16 -minterlink-mips16)
+    makelib () {
+      $AR rcs "$@"
+    }
+    makesharedlib () {
+      $CC -shared -o "$@"
+    }
+    ;;
+  openwrt-mips-musl)
+    export BASE="/Volumes/OpenWRT/staging_dir"
+    export STAGING_DIR="$BASE/target-mips_24kc_musl"
+    export PATH="$BASE/toolchain-mips_24kc_gcc-5.5.0_musl/bin:$PATH"
+    ARCHPREFIX=mips-openwrt-linux
+    CC=$ARCHPREFIX-gcc
+    CXX=$ARCHPREFIX-g++
+    AR=$ARCHPREFIX-ar
+    LIBLUA=no
+    #-Os -pipe -mno-branch-likely -mips32r2 -mtune=24kc -fno-caller-saves -fno-plt -fhonour-copts -msoft-float -mips16 -minterlink-mips16
+    cfl=(-D__Linux26__ -mips32r2 -mtune=24kc -fno-caller-saves -fno-plt -fhonour-copts -msoft-float -mips16 -minterlink-mips16)
+    makelib () {
+      $AR rcs "$@"
+    }
+    makesharedlib () {
+      $CC -shared -o "$@"
+    }
+    ;;
+  openwrt-arm)
+    export BASE="/opt/openwrt/staging_dir"
+    export STAGING_DIR="$BASE/target-arm_cortex-a8+vfpv3_musl-1.1.11_eabi"
+    export PATH="$BASE/toolchain-arm_cortex-a8+vfpv3_gcc-4.8-linaro_musl-1.1.11_eabi/bin:$PATH"
+    ARCHPREFIX=arm-openwrt-linux-muslgnueabi
+    CC=$ARCHPREFIX-gcc
+    CXX=$ARCHPREFIX-g++
+    AR=$ARCHPREFIX-ar
+    LIBLUA=no
+    cfl=(-D__Linux26__)
+    makelib () {
+      $AR rcs "$@"
+    }
+    makesharedlib () {
+      $CC -shared -o "$@"
+    }
+    ;;
+  android-16-arm)
+    path=(/Users/jpc/Applications/android-ndk-r9d/$ARCH/bin $path)
+    ARCHPREFIX=arm-linux-androideabi
+    CC=$ARCHPREFIX-gcc
+    CXX=$ARCHPREFIX-g++
+    AR=$ARCHPREFIX-ar
+    cfl=(-D__Linux26__ -march=armv7-a -mfloat-abi=softfp)
+    makelib () {
+      $AR rcs "$@"
+    }
+    makesharedlib () {
+      $CC -shared -o "$@"
+    }
+    ;;
+  *)
+    echo "Unknown or no platform given: $1"
+    exit 1
+esac
+
+if [[ "$2" = clean ]]; then
+  rm -rf $DEST
+elif [[ ! -z $2 ]]; then
+  rm -rf $DEST/$2
+fi
+
+cfl=(-ggdb -Os --std=gnu99 -Wall -Wextra -Wno-missing-field-initializers -Wno-unused-parameter -Wno-unused-function $cfl)
+cfl=(-D_LARGEFILE64_SOURCE=1 -D_LARGEFILE_SOURCE=1 $cfl)
+if [[ $LIBLUA != no ]]; then
+  cfl=($cfl -Ilua-5.1.5/src)
+fi
+cppfl=($cfl --std=gnu++11)
+TEMP=temp-$ARCH
+
+mkdir -p $DEST
+
+build() {
+  if [[ -e $DEST/$1 ]]; then
+    return
+  fi
+  mkdir -p $TEMP
+  (build-$1) || echo "building $1 failed"
+  rm -r $TEMP
+}
+
+build-liblua.a () {
+  cat > $DEST/lua_compat52.h <<EOF
+#include <lua.h>
+#if LUA_VERSION_NUM >= 502
+#define luaL_reg luaL_Reg
+#define luaL_register(L, name, funcs) ({ \
+  if(name) lua_getglobal(L, name); else lua_newtable(L); \
+  if(lua_isnil(L, -1)) { lua_pop(L, 1); lua_newtable(L); } \
+  luaL_setfuncs(L, funcs, 0); \
+})
+#define luaL_putchar(B, c) luaL_addchar(B, c)
+#endif
+EOF
+
+  [[ $LIBLUA == no ]] && return 0
+  SRC=lua-5.1.5/src
+    files=(lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c
+        lmem.c lobject.c lopcodes.c lparser.c lstate.c lstring.c
+        ltable.c ltm.c lundump.c lvm.c lzio.c
+        lauxlib.c lbaselib.c ldblib.c liolib.c lmathlib.c loslib.c
+        ltablib.c lstrlib.c loadlib.c linit.c
+        print.c
+#        lbitlib.c lcorolib.c lctype.c
+        )
+
+  cat > $TEMP/config.h <<EOF
+#if defined(__APPLE__)
+#  define LUA_USE_MACOSX
+#  define LUA_USE_DLOPEN
+#endif
+
+#if defined(__linux__)
+#  define LUA_USE_LINUX
+#endif
+
+#if defined(__ANDROID__)
+#include <locale.h>
+
+#define lconv rpl_lconv
+struct lconv {
+  char decimal_point[1];
+};
+
+#define localeconv rpl_localeconv
+__attribute__((__unused__)) static struct lconv *localeconv(void)
+{
+  return 0;
+}
+#endif
+EOF
+
+  for file in $files; do
+    $CC $cfl -include $TEMP/config.h -o $TEMP/${file:r}.o -c $SRC/${file:r}.c
+  done
+
+  makelib $DEST/liblua.a $TEMP/${^files:r}.o
+  $CC $cfl -include $TEMP/config.h -o $DEST/luac $SRC/luac.c $DEST/liblua.a $ldfl -lm
+  cp $SRC/{lauxlib,lualib,luaconf,lua}.h $DEST
+}
+
+build-liblua-socket.a() {
+  SRC=luasocket/src
+  files=(luasocket.o compat.o timeout.o buffer.o io.o auxiliar.o options.o inet.o
+      tcp.o udp.o except.o select.o mime.o)
+  if [[ $ARCH == win* ]]; then
+    files=(wsocket.o $files)
+  else
+    files=(usocket.o unix.o unixdgram.o unixstream.o $files)
+  fi
+
+  for file in $files; do
+    $CC $cfl -DNDEBUG -include $DEST/lua_compat52.h -o $TEMP/${file:r}.o -c $SRC/${file:r}.c
+  done
+
+  makelib $DEST/liblua-socket.a $TEMP/${^files}
+}
+
+build-liblua-filesystem.a() {
+  SRC=luafilesystem/src
+
+  $CC $cfl -o $TEMP/lfs.o -c $SRC/lfs.c
+
+  makelib $DEST/liblua-filesystem.a $TEMP/lfs.o
+}
+
+build-liblua-posix.a() {
+ if [[ $POSIX == no ]]; then
+   return 0
+ fi
+ SRC=luaposix
+
+ cat > $TEMP/config.h << EOF
+#define PACKAGE_NAME "luaposix"
+#define PACKAGE_STRING "luaposix 33.4.0"
+#define VERSION "5.1.24"
+
+#if defined(__ANDROID__)
+#include <string.h>
+#define O_DSYNC O_SYNC
+extern char *mkdtemp(char *path);
+int gethostid(void) { return 0; }
+char *ctermid (char *buf)
+{
+  static char devname[] = "/dev/tty";
+  if (buf == 0)
+    return devname;
+
+  return strcpy (buf, "/dev/tty");
+}
+#endif
+EOF
+ if [[ $ARCH == android* ]]; then
+   wget -O $TEMP/glob.c https://raw.github.com/white-gecko/TokyoCabinet/master/glob.c
+   wget -O $TEMP/glob.h https://raw.github.com/white-gecko/TokyoCabinet/master/glob.h
+   $CC $cfl -I$TEMP -o $TEMP/_glob.o -c $TEMP/glob.c
+ fi
+
+ # NEW: $CC $cfl -I$TEMP -I$SRC/ext/include -o $TEMP/posix.o -c $SRC/ext/posix/posix.c
+ $CC $cfl -I$TEMP -I$SRC/ext/include -o $TEMP/posix.o -c $SRC/lposix.c
+
+ makelib $DEST/liblua-posix.a $TEMP/posix.o $TEMP/_glob.o(N)
+}
+
+build-libyajl.a() {
+  SRC=yajl/src
+  files=(yajl.c yajl_lex.c yajl_parser.c yajl_buf.c
+         yajl_encode.c yajl_gen.c yajl_alloc.c
+         yajl_tree.c yajl_version.c)
+  headers=(api/yajl_parse.h api/yajl_gen.h api/yajl_common.h
+           api/yajl_tree.h)
+
+  mkdir -p $DEST/yajl
+  sed -e 's/${YAJL_MAJOR}/2/g' -e 's/${YAJL_MINOR}/0/g' -e 's/${YAJL_MICRO}/5/g' \
+    < $SRC/api/yajl_version.h.cmake > $DEST/yajl/yajl_version.h
+
+  cp $SRC/${^headers} $DEST/yajl/
+
+  for file in $files; do
+    $CC $cfl -I$DEST -o $TEMP/${file:r}.o -c $SRC/$file
+  done
+
+  makelib $DEST/libyajl.a $TEMP/${^files:r}.o
+}
+
+build-liblua-yajl.a() {
+  SRC=lua-yajl
+
+  $CC $cfl -I$DEST -o $TEMP/lua_yajl.o -c $SRC/lua_yajl.c
+
+  makelib $DEST/liblua-yajl.a $TEMP/*.o
+}
+
+build-libev.a() {
+  $CC $cfl -DNDEBUG -o $TEMP/ev.o -c ev.c
+  makelib $DEST/libev.a $TEMP/ev.o
+  cat > $DEST/ev.h <<EOF
+#include "../../ev.h"
+EOF
+}
+
+build-liblua-udev.a() {
+  [[ $LIBUDEV == no ]] && return 0
+  SRC=lua-udev
+
+  $CC $cfl -I$DEST -o $TEMP/udev.nobj.o -c $SRC/udev.nobj.c
+
+  makelib $DEST/liblua-udev.a $TEMP/*.o
+}
+
+build-liblua-ev.a() {
+  SRC=lua-ev
+
+  $CC $cfl -I$DEST -o $TEMP/lua_ev.o -c $SRC/lua_ev.c
+
+  makelib $DEST/liblua-ev.a $TEMP/*.o
+}
+
+build-liblua-md5.a() {
+  SRC=md5/src
+  files=(md5 md5lib compat-5.2)
+
+  for file in $files; do
+    $CC $cfl -include $DEST/lua_compat52.h -o $TEMP/$file.o -c $SRC/$file.c
+  done
+  makelib $DEST/liblua-md5.a $TEMP/${^files}.o
+  cp $SRC/md5.h $DEST/lua-md5.h
+}
+
+build-libmodpbase64.a() {
+  SRC=$PWD/stringencoders-v3.10.3/src
+  types=(b2 b16 b64 burl ascii bjavascript) # FIXME: b85
+
+  cd $TEMP
+
+  sed -e 's/b64/b64w/g' < $SRC/modp_b64.c > modp_b64w.c
+  cp $SRC/modp_b64w.h .
+
+  case "$ARCHPREFIX" in
+    mips-*)
+      cat > config.h <<EOF
+#define WORDS_BIGENDIAN 1
+EOF
+      ;;
+    *)
+      touch config.h
+      ;;
+  esac
+
+
+  for type in $types; do
+    gcc -o modp_${type}_gen $SRC/arraytoc.c $SRC/modp_${type}_gen.c
+    ./modp_${type}_gen > modp_${type}_data.h
+  done
+  B64WCHARS="-_."
+  ./modp_b64_gen ${B64WCHARS} > modp_b64w_data.h
+
+  types=($types b64w numtoa)
+
+  for type in $types; do
+    srcname=modp_${type}.c
+    if [[ ! -e "$srcname" ]]; then
+      srcname="$SRC/$srcname"
+    fi
+    $CC $cfl -I. -o $type.o -c "$srcname"
+  done
+
+  cd -
+
+  makelib $DEST/libmodpbase64.a $TEMP/${^types}.o
+  cp $SRC/modp_${^types}.h $DEST
+}
+
+build-libsha2.a() {
+  SRC=$PWD/sha2-07-01-07
+  files=(sha1 sha2)
+
+  for file in $files; do
+    $CC $cfl -o $TEMP/$file.o -c $SRC/$file.c
+  done
+
+  makelib $DEST/libsha2.a $TEMP/${^files}.o
+  mkdir -p $DEST/sha2
+  cp $SRC/*.h $DEST/sha2
+}
+
+build-libp9dial.a() {
+  if [[ $POSIX == no ]]; then
+    return 0
+  fi
+  SRC=$PWD/p9dial
+  files=(_p9dialparse announce dial getnetconn)
+  files=($files open malloc strdup errstr strecpy lock)
+  files=($files fmt/dofmt fmt/vseprint fmt/fmt fmt/fmtlocale fmtlock2 fmt/fltfmt fmt/nan64 fmt/strtod)
+  files=($files utf/rune utf/utflen utf/utfnlen)
+
+  for file in $files; do
+    mkdir -p $(dirname $TEMP/$file)
+    $CC $cfl -I$SRC -o $TEMP/$file.o -c $SRC/$file.c
+  done
+
+  makelib $DEST/libp9dial.a $TEMP/${^files}.o
+  mkdir -p $DEST/p9dial
+  cp $SRC/u.h $DEST/p9dial
+  cat > $DEST/p9dial.h <<EOF
+#include <p9dial/u.h>
+/*
+ *  network dialing
+ */
+#define NETPATHLEN 40
+extern	int	p9accept(int, char*);
+extern	int	p9announce(char*, char*);
+extern	int	p9dial(char*, char*, char*, int*);
+extern	int	p9dialparse(char *ds, char **net, char **unixa, u32int *ip, int *port);
+extern	void	p9setnetmtpt(char*, int, char*);
+extern	int	p9listen(char*, char*);
+extern	char*	p9netmkaddr(char*, char*, char*);
+extern	int	p9reject(int, char*, char*);
+
+#ifndef NOPLAN9DEFINES
+#define	accept		p9accept
+#define	announce	p9announce
+#define	dial		p9dial
+#define	setnetmtpt	p9setnetmtpt
+#define	listen		p9listen
+#define	netmkaddr	p9netmkaddr
+#define	reject		p9reject
+#endif
+EOF
+}
+
+build-libudev.a() {
+  if [[ $LIBUDEV == no ]]; then
+    return 0
+  fi
+  SRC=$PWD/udev-182/src
+  #pcfl=(-DENABLE_LOGGING -DENABLE_DEBUG)
+  pcfl=($pcfl -include $TEMP/config.h)
+  files=(libudev libudev-device libudev-device-private libudev-enumerate libudev-list libudev-monitor)
+  files=($files libudev-queue libudev-queue-private libudev-util libudev-util-private)
+
+cat > $TEMP/config.h <<EOF
+#define _GNU_SOURCE
+
+#define SYSCONFDIR "/etc"
+#define PKGLIBEXECDIR "/lib/udev"
+
+#if defined(__ANDROID__)
+#include "fcntl.h"
+#define SOCK_NONBLOCK O_NONBLOCK
+#define SOCK_CLOEXEC O_CLOEXEC
+#endif
+
+#define MAX(a,b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b);  _a > _b ? _a : _b; })
+#define MIN(a,b) ({ __typeof__ (a) _a = (a); __typeof__ (b) _b = (b);  _a < _b ? _a : _b; })
+EOF
+
+  for file in $files; do
+    $CC $cfl $pcfl -o $TEMP/$file.o -c $SRC/$file.c
+  done
+
+  cat > $TEMP/mempcpy.c <<EOF
+#include <string.h>
+
+void *mempcpy(void *dest, const void *src, size_t n) {
+  memcpy(dest, src, n);
+  dest += n;
+  return dest;
+}
+EOF
+  $CC $cfl $pcfl -o $TEMP/mempcpy.o -c $TEMP/mempcpy.c
+
+  makelib $DEST/libudev.a $TEMP/${^files}.o $TEMP/mempcpy.o
+  cp $SRC/libudev.h $DEST/
+}
+
+build-liblua-winapi.a () {
+  if [[ $ARCH != win* ]]; then
+    return 0
+  fi
+  SRC=$PWD/winapi
+  files=(winapi wutils)
+  cfl=(${cfl:#*UNICODE*} -DPSAPI_VERSION=1)
+
+  for file in $files; do
+    $CC $cfl -o $TEMP/$file.o -c $SRC/$file.c
+  done
+
+  makelib $DEST/liblua-winapi.a $TEMP/${^files}.o
+}
+
+build-libzip.a () {
+  SRC=$PWD/libzip/lib
+  cd $SRC
+  files=(zip*.c)
+  cd -
+
+  if [[ $ARCH == win* ]]; then
+    files=(mkstemp.c $files)
+  fi
+
+  cat > $TEMP/config.h <<EOF
+#ifndef HAD_CONFIG_H
+#define HAD_CONFIG_H
+#define HAVE_FSEEKO
+#ifndef _WIN32
+#  define HAVE_MKSTEMP
+#endif
+/* #undef HAVE_MOVEFILEEXA */
+/* #undef HAVE__SNPRINTF */
+#define HAVE_SNPRINTF
+/* #undef HAVE__STRCMPI */
+/* #undef HAVE__STRICMP */
+#define HAVE_UNISTD_H
+#define PACKAGE "libzip"
+#define VERSION "0.10.b"
+
+#define SIZEOF_OFF_T 8
+
+#endif /* HAD_CONFIG_H */
+EOF
+  cat > $TEMP/zipconf.h <<EOF
+#ifndef _HAD_ZIPCONF_H
+#define _HAD_ZIPCONF_H
+
+#undef ZIP_EXTERN
+#define ZIP_EXTERN
+
+#include <stdint.h>
+
+typedef int8_t zip_int8_t;
+typedef uint8_t zip_uint8_t;
+typedef int16_t zip_int16_t;
+typedef uint16_t zip_uint16_t;
+typedef int32_t zip_int32_t;
+typedef uint32_t zip_uint32_t;
+typedef int64_t zip_int64_t;
+typedef uint64_t zip_uint64_t;
+
+#define ZIP_INT8_MIN  -0x80
+#define ZIP_INT8_MAX   0x7f
+#define ZIP_UINT8_MAX  0xff
+
+#define ZIP_INT16_MIN -0x8000
+#define ZIP_INT16_MAX  0x7fff
+#define ZIP_UINT16_MAX   0xffff
+
+#define ZIP_INT32_MIN -0x80000000L
+#define ZIP_INT32_MAX  0x7fffffffL
+#define ZIP_UINT32_MAX   0xffffffffLU
+
+#define ZIP_INT64_MIN -0x8000000000000000LL
+#define ZIP_INT64_MAX  0x7fffffffffffffffLL
+#define ZIP_UINT64_MAX   0xffffffffffffffffULL
+
+#endif /* zipconf.h */
+EOF
+
+  for file in $files; do
+    $CC $cfl -I$TEMP -I$DEST -o $TEMP/${file:r}.o -c $SRC/$file
+  done
+
+  makelib $DEST/libzip.a $TEMP/${^files:r}.o
+  cp $SRC/zip.h $DEST
+  cp $TEMP/zipconf.h $DEST
+}
+
+build-liblua-zip.a () {
+  $CC $cfl -I$DEST -o $TEMP/lua_zip.o -c lua-zip/lua_zip.c
+  makelib $DEST/liblua-zip.a $TEMP/lua_zip.o
+}
+
+build-libz.a () {
+  SRC=$PWD/zlib-1.2.7
+  files=(adler32.c compress.c crc32.c deflate.c gzclose.c gzlib.c gzread.c gzwrite.c
+         inflate.c infback.c inftrees.c inffast.c trees.c uncompr.c zutil.c)
+
+  cd $SRC
+  sed < zconf.h "/^#ifdef HAVE_UNISTD_H.* may be/s/def HAVE_UNISTD_H\(.*\) may be/ 1\1 was/" > zconf.temp.h
+  sed < zconf.temp.h "/^#ifdef HAVE_STDARG_H.* may be/s/def HAVE_STDARG_H\(.*\) may be/ 1\1 was/" > zconf.h
+  rm zconf.temp.h
+  cd -
+
+  for file in $files; do
+    $CC $cfl -I$TEMP -o $TEMP/${file:r}.o -c $SRC/$file
+  done
+
+  makelib $DEST/libz.a $TEMP/${^files:r}.o
+  cp $SRC/zlib.h $DEST
+  cp $SRC/zconf.h $DEST
+}
+
+build-libsqlite3.a () {
+  SRC=sqlite-amalgamation-3071502
+  if [[ $ARCH == win* ]]; then
+    flags=(-DSQLITE_4_BYTE_ALIGNED_MALLOC=1)
+  fi
+  flags=(-DSQLITE_THREADSAFE=0 $flags)
+
+  $CC $cfl $flags -o $TEMP/sqlite3.o -c $SRC/sqlite3.c
+  makelib $DEST/libsqlite3.a $TEMP/sqlite3.o
+  cp $SRC/sqlite3.h $DEST
+}
+
+build-libluasql-sqlite3.a () {
+  SRC=luasql/src
+  files=(luasql ls_sqlite3)
+  for file in $files; do
+    $CC $cfl -I$DEST -o $TEMP/$file.o -c $SRC/$file.c
+  done
+  makelib $DEST/libluasql-sqlite3.a $TEMP/${^files}.o
+}
+
+build-libluachecks.a () {
+  SRC=luasched/c
+
+  $CC $cfl $flags -o $TEMP/checks.o -c $SRC/checks.c
+  makelib $DEST/libluachecks.a $TEMP/checks.o
+}
+
+build-libturbojpeg.a () {
+  SRC=$PWD/libjpeg-turbo-1.3.0
+
+  case $ARCH in
+    osx)
+      (cd $TEMP &&
+       $SRC/configure --host i686-apple-darwin CFLAGS='-O3 -m32' LDFLAGS=-m32 &&
+       make)
+      ;;
+    *)
+      return
+      ;;
+  esac
+
+  cp $TEMP/.libs/libturbojpeg.a $SRC/turbojpeg.h $DEST
+}
+
+build-libsnappy.a () {
+  SRC=snappy
+  files=(snappy snappy-sinksource snappy-stubs-internal snappy-c)
+  headers=(snappy.h snappy-sinksource.h snappy-c.h)
+
+  if [[ $ARCH == win* ]]; then
+    HAS_UIO_H=0
+  else
+    HAS_UIO_H=1
+  fi
+
+  mkdir -p $DEST/snappy
+  sed -e 's/@ac_cv_have_stdint_h@/1/g'             \
+      -e 's/@ac_cv_have_stddef_h@/1/g'             \
+      -e 's/@ac_cv_have_sys_uio_h@/'$HAS_UIO_H'/g' \
+      -e 's/@SNAPPY_MAJOR@/1/g'                    \
+      -e 's/@SNAPPY_MINOR@/1/g'                    \
+      -e 's/@SNAPPY_PATCHLEVEL@/2/g' $SRC/snappy-stubs-public.h.in > $DEST/snappy/snappy-stubs-public.h
+
+  for file in $files; do
+    $CXX $cppfl -I$DEST/snappy -o $TEMP/$file.o -c $SRC/$file.cc
+  done
+
+  makelib $DEST/libsnappy.a $TEMP/${^files}.o
+  cp $SRC/${^headers} $DEST/snappy
+}
+
+build-libleveldb.a () {
+  SRC=$PWD/leveldb
+
+  cd $SRC
+  export CC CXX
+  OPT="-O2 -DNDEBUG"
+  if [[ $ARCH == osx ]]; then
+    TARGET_OS=Darwin
+    OPT="$OPT -arch i386 -arch x86_64"
+  elif [[ $ARCH == linux* || $ARCH == android* ]]; then
+    TARGET_OS=Linux
+    OPT="$OPT -fPIC"
+  elif [[ $ARCH == openwrt-* ]]; then
+    return 0
+    TARGET_OS=Linux
+    OPT="$OPT -fPIC"
+  fi
+
+  export TARGET_OS OPT
+  make clean
+  make
+  cd -
+  cp $SRC/libleveldb.a $DEST
+  cp -r $SRC/include/leveldb $DEST/
+}
+
+build-leveldb.so () {
+  SRC=$PWD/lua-leveldb
+
+  if [[ $ARCH == openwrt-* ]]; then
+    return 0
+  fi
+
+  cat > $DEST/config.h <<EOF
+#define LEVELDB_FILTER_POLICY_H 1
+EOF
+
+  $CXX $cppfl -I$DEST -o $TEMP/lua-leveldb.o -c $SRC/src/lua-leveldb.cc
+  makesharedlib $DEST/leveldb.so $TEMP/lua-leveldb.o -L$DEST -I$DEST -lleveldb -lsnappy
+}
+
+build-unixODBC () {
+  SRC=$PWD/unixODBC-2.3.2
+  DESTDIR=$PWD/$DEST
+
+  cd $SRC
+  if ! [ -e ".patched" ]; then
+    if [ $ARCH = android-* ]; then
+      patch -p1 < ../unixODBC-2.3.2-Android-pthread.patch
+    fi
+    autoreconf --install --force
+    touch .patched
+  fi
+
+  if [ $ARCH = android-* ]; then
+    # PREFIX=/data/botbrew/loee.pl/unixODBC-2.3.2
+    PREFIX=/botbrew
+  else
+    PREFIX=/usr/local/Cellar/unixODBC/2.3.2
+  fi
+  make clean || true
+  ./configure --host=$ARCHPREFIX --prefix=$PREFIX --enable-shared CFLAGS="$cfl" LDFLAGS="$cfl"
+  mkdir -p $DESTDIR/unixODBC/$PREFIX/etc
+  make
+  make install DESTDIR=$DESTDIR/unixODBC
+  cd -
+  # fails cross-compilation of dependent packages:
+  rm $DEST/unixODBC/$PREFIX/bin/odbc_config
+}
+
+build-freetds () {
+  if [[ $ARCH != openwrt-* ]]; then
+    return 0
+  fi
+
+  SRC=$PWD/freetds-0.92.405
+  # SRC=$PWD/freetds-0.91
+  DESTDIR=$PWD/$DEST
+
+  cd $SRC
+  if ! [ -e ".patched" ]; then
+    if [[ $ARCH == android-* ]]; then
+      patch -p1 < ../freetds-0.92.405-Android-includes.patch
+      autoreconf --install --force
+    fi
+    touch .patched
+  fi
+
+  if [ $ARCH = android-* ]; then
+    OPTS="ac_cv_func_which_getpwuid_r=no"
+  fi
+
+  if [ $ARCH = android-* ]; then
+    # PREFIX=/data/botbrew/loee.pl/unixODBC-2.3.2
+    PREFIX=/botbrew
+  else
+    PREFIX=/freetds
+  fi
+
+  make clean || true
+  ./configure --host=$ARCHPROFIX --prefix=$PREFIX --enable-shared --with-unixodbc=$STAGING_DIR/usr CFLAGS="$cfl" LDFLAGS="$cfl" $OPTS
+  make
+  make install DESTDIR=$DESTDIR/freetds
+  mv $DESTDIR/freetds/freetds $DESTDIR/freetds/all
+  mkdir -p $DESTDIR/freetds/freetds/{etc,lib}
+  cp $DESTDIR/freetds/all/etc/{freetds,locales,pool}.conf $DESTDIR/freetds/freetds/etc
+  cp $DESTDIR/freetds/all/lib/libtdsodbc.so.*.*.* $DESTDIR/freetds/freetds/lib
+  cd -
+}
+
+build-luasql-odbc.so () {
+  SRC=luasql/src
+  files=(luasql ls_odbc)
+  for file in $files; do
+    $CC -fPIC $cfl -I -DUNIXODBC -I$DEST -o $TEMP/$file.o -c $SRC/$file.c
+  done
+  makesharedlib $DEST/luasql-odbc.so -fPIC -L$DEST -L$DEST/unixODBC/botbrew/lib -lodbc $TEMP/${^files}.o
+}
+
+build-lua-odbc () {
+  SRC=lua-odbc
+  files=(
+    l52util  lcnn
+    lenv     lerr
+    libopt   lodbc
+    lstmt    lval
+    parlist  utils
+  )
+  if [[ $ARCH == openwrt-mips* ]]; then
+    cfl=($cfl -DLUA_NUMBER_DOUBLE)
+  fi
+  for file in $files; do
+    $CC -fPIC $cfl -I$DEST/unixODBC/botbrew/include -I$SRC/include -I$DEST -DUNIXODBC \
+      -DLUAODBC_EXPORTS -DLODBC_ERROR_AS_OBJECT -DLODBC_MIN_PAR_BUFSIZE=64 -DLODBC_CHECK_ERROR_ON_DESTROY \
+      -DLODBC_USE_NULL_AS_NIL \
+      -o $TEMP/$file.o -c $SRC/src/$file.c
+  done
+  cp -aR $SRC/lua/* $DEST/
+  makesharedlib $DEST/odbc/core.so -L$DEST $TEMP/${^files}.o -lodbc
+  # -L$DEST/unixODBC/botbrew/lib
+}
+
+build-liblua-inotify.a () {
+  if [[ $ARCH != linux* && $ARCH != openwrt-* ]]; then
+    return
+  fi
+
+  $CC $cfl -I$DEST -o $TEMP/linotify.o -c linotify/linotify.c
+  makelib $DEST/liblua-inotify.a $TEMP/linotify.o
+}
+
+build-liblua-lpeg.a () {
+  SRC=lpeg
+  files=(lpvm lpcap lptree lpcode lpprint)
+
+  for file in $files; do
+    $CC $cfl -I$DEST -o $TEMP/$file.o -c $SRC/$file.c
+  done
+
+  makelib $DEST/liblua-lpeg.a $TEMP/${^files}.o
+}
+
+build-liblua-cjson.a () {
+  SRC=$PWD/lua-cjson
+  files=(lua_cjson fpconv strbuf)
+
+  for file in $files; do
+    $CC $cfl -o $TEMP/$file.o -c $SRC/$file.c
+  done
+
+  makelib $DEST/liblua-cjson.a $TEMP/${^files}.o
+}
+
+build-liblua-tweetnacl.a () {
+  SRC=$PWD/luatweetnacl
+  files=(luatweetnacl randombytes tweetnacl)
+
+  for file in $files; do
+    $CC $cfl -o $TEMP/$file.o -c $SRC/$file.c
+  done
+
+  makelib $DEST/liblua-tweetnacl.a $TEMP/${^files}.o
+}
+
+build libev.a
+#build libyajl.a
+build libmodpbase64.a
+build libsha2.a
+build libp9dial.a
+build libudev.a
+build libz.a
+#build libzip.a
+#build libsqlite3.a
+build libturbojpeg.a
+#build libsnappy.a
+#build libleveldb.a
+#build unixODBC
+#build freetds
+
+build liblua.a
+build liblua-socket.a
+build liblua-filesystem.a
+#build liblua-yajl.a
+build liblua-md5.a
+build liblua-winapi.a
+build liblua-udev.a
+build liblua-ev.a
+#build liblua-zip.a
+build liblua-posix.a
+#build libluasql-sqlite3.a
+#build luasql-odbc.so
+#build lua-odbc
+#build leveldb.so
+build libluachecks.a
+build liblua-inotify.a
+build liblua-lpeg.a
+build liblua-cjson.a
+build liblua-tweetnacl.a

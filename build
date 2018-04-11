@@ -299,7 +299,9 @@ build-liblua-ev.a() {
 
 build-liblua-md5.a() {
   SRC=md5/src
-  files=(md5 md5lib compat-5.2)
+  files=(md5 md5lib
+         #compat-5.2
+        )
 
   for file in $files; do
     $CC $cfl -include $DEST/lua_compat52.h -o $TEMP/$file.o -c $SRC/$file.c

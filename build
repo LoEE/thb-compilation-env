@@ -43,18 +43,6 @@ case $ARCH in
       libtool -static -s -o "$@"
     }
     ;;
-  osx-jit)
-    ARCHPREFIX=llvm
-    CC=$ARCHPREFIX-gcc
-    CXX=$ARCHPREFIX-g++
-    AR=ar
-    LIBUDEV=no
-    LIBLUA=no
-    cfl=(-arch i386 -arch x86_64 -mmacosx-version-min=10.7 -I/usr/local/include/luajit-2.0/)
-    makelib () {
-      libtool -static -s -o "$@"
-    }
-    ;;
   linux)
     ARCHPREFIX=i686-loee-linux-gnu
     export PATH="/usr/local/${ARCHPREFIX}-20150122.loee.pl/bin:$PATH"

@@ -89,23 +89,6 @@ case $ARCH in
   #     $AR rcs "$@"
   #   }
   #   ;;
-  openwrt-mips-uClibc)
-    #export BASE="/opt/openwrt/staging_dir"
-    #export STAGING_DIR="$BASE/target-mips_34kc_uClibc-0.9.33.2"
-    #export PATH="$BASE/toolchain-mips_34kc_gcc-4.8-linaro_uClibc-0.9.33.2/bin:$PATH"
-    export BASE="/Volumes/OpenWRT/staging_dir"
-    export STAGING_DIR="$BASE/target-mips_34kc_uClibc-0.9.33.2"
-    export PATH="$BASE/toolchain-mips_34kc_gcc-4.8-linaro_uClibc-0.9.33.2/bin:$PATH"
-    ARCHPREFIX=mips-openwrt-linux
-    CC=$ARCHPREFIX-gcc
-    CXX=$ARCHPREFIX-g++
-    AR=$ARCHPREFIX-ar
-    LIBLUA=no
-    cfl=(-D__Linux26__ -mips16 -minterlink-mips16)
-    makelib () {
-      $AR rcs "$@"
-    }
-    ;;
   openwrt-mips)
     export BASE="/Volumes/OpenWRT/staging_dir"
     export STAGING_DIR="$BASE/target-mips_24kc_musl"

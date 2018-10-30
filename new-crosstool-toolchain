@@ -1,0 +1,46 @@
+#!/bin/sh
+
+if [ $# -lt 4 ]; then
+  echo "Usage:
+  $0 basedir archprefix dest platform
+"
+  exit 1
+fi
+
+basedir=$1
+archprefix=$2
+dest=$3
+platform=$4
+
+[ -x "$basedir/bin/$archprefix-gcc" ] || { echo "error: '$basedir/bin/$archprefix-gcc' does not exist or is not executable"; exit 1; }
+
+rm -rf "$dest" && mkdir -p "$dest" && cd "$dest" || exit 1
+
+makescript() {
+  {
+    cat <<EOF
+#/bin/sh
+export PATH="$basedir/bin:\$PATH"
+EOF
+    cat
+  } > "$1"
+  chmod u+x "$1"
+}
+
+makescript compile-c <<EOF
+$archprefix-gcc $CFLAGS "\$@"
+EOF
+makescript compile-c++ <<EOF
+$archprefix-g++ $CFLAGS $CPPFLAGS "\$@"
+EOF
+makescript link <<EOF
+$archprefix-gcc $LDFLAGS "\$@"
+EOF
+makescript strip <<EOF
+$archprefix-strip -d "\$@"
+EOF
+makescript make-static-lib <<EOF
+$archprefix-ar rcs "\$@"
+EOF
+echo "PLATFORM_STRING=$platform" > platform
+echo "#define PLATFORM_STRING \"$platform\"" > platform.h

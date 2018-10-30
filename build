@@ -2,132 +2,28 @@
 
 set -x -e
 
-ARCH=$1
+TOOLCHAIN=$1
+ARCH=$(basename "$TOOLCHAIN")
 DEST=out/$ARCH
 
+[ -x "$TOOLCHAIN"/compile-c ] || { echo "error: "$TOOLCHAIN"/compile-c not found"}
+
+ln -sfn $PWD/$DEST $TOOLCHAIN/lib
+
+TOOLCHAIN=$(greadlink -f $TOOLCHAIN)
+
 case $ARCH in
-  win32)
-    export PATH="/usr/local/i686-w64-mingw32-20150524.loee.pl/bin:$PATH"
-    ARCHPREFIX=i686-w64-mingw32
-    CC=$ARCHPREFIX-gcc
-    CXX=$ARCHPREFIX-g++
-    AR=$ARCHPREFIX-ar
+  win*)
     LIBUDEV=no
     POSIX=no
-    cfl=(-DUNICODE -D_UNICODE -m32)
-    makelib () {
-      $AR rcs "$@"
-    }
-    ;;
-  win64)
-    export PATH="/usr/local/x86_64-w64-mingw32-20150524.loee.pl/bin:$PATH"
-    ARCHPREFIX=x86_64-w64-mingw32
-    CC=$ARCHPREFIX-gcc
-    CXX=$ARCHPREFIX-g++
-    AR=$ARCHPREFIX-ar
-    LIBUDEV=no
-    POSIX=no
-    cfl=(-DUNICODE -D_UNICODE -m64)
-    makelib () {
-      $AR rcs "$@"
-    }
     ;;
   osx)
-    ARCHPREFIX=llvm
-    CC=$ARCHPREFIX-gcc
-    CXX=$ARCHPREFIX-g++
-    AR=ar
     LIBUDEV=no
-    cfl=(-arch i386 -arch x86_64 -mmacosx-version-min=10.7)
-    makelib () {
-      libtool -static -s -o "$@"
-    }
     ;;
-  linux)
-    ARCHPREFIX=i686-loee-linux-gnu
-    export PATH="/usr/local/${ARCHPREFIX}-20150122.loee.pl/bin:$PATH"
-    CC=$ARCHPREFIX-gcc
-    CXX=$ARCHPREFIX-g++
-    AR=$ARCHPREFIX-ar
-    cfl=(-D__Linux26__ -DNAME_MAX=FILENAME_MAX -m32)
-    ldfl=(-lm)
-    makelib () {
-      $AR rcs "$@"
-    }
+  linux*)
     ;;
-  linux64)
-    ARCHPREFIX=x86_64-loee-linux-gnu
-    export PATH="/usr/local/${ARCHPREFIX}-20150122.loee.pl/bin:$PATH"
-    CC=$ARCHPREFIX-gcc
-    CXX=$ARCHPREFIX-g++
-    AR=$ARCHPREFIX-ar
-    cfl=(-D__Linux26__ -DNAME_MAX=FILENAME_MAX -m64)
-    makelib () {
-      $AR rcs "$@"
-    }
-    ;;
-  linux-armhf)
-    ARCHPREFIX=arm-linux-gnueabi
-    export PATH="/usr/local/arm-loee-linux-gnueabi-20150122.loee.pl/bin:$PATH"
-    CC=$ARCHPREFIX-gcc
-    CXX=$ARCHPREFIX-g++
-    AR=$ARCHPREFIX-ar
-    cfl=(-D__Linux26__ -lm)
-    makelib () {
-      $AR rcs "$@"
-    }
-    ;;
-  # openwrt-i386)
-  #   . ./setupwrt-i386
-  #   ARCHPREFIX=i486-openwrt-linux-uclibc
-  #   CC=$ARCHPREFIX-gcc
-  #   AR=$ARCHPREFIX-ar
-  #   DEST=out/$1
-  #   LIBLUA=no
-  #   cfl=(-D__Linux26__)
-  #   makelib () {
-  #     $AR rcs "$@"
-  #   }
-  #   ;;
-  openwrt-mips)
-    export BASE="/Volumes/OpenWRT/staging_dir"
-    export STAGING_DIR="$BASE/target-mips_24kc_musl"
-    export PATH="$BASE/toolchain-mips_24kc_gcc-7.3.0_musl/bin:$PATH"
-    ARCHPREFIX=mips-openwrt-linux
-    CC=$ARCHPREFIX-gcc
-    CXX=$ARCHPREFIX-g++
-    AR=$ARCHPREFIX-ar
+  openwrt-mips*)
     LIBLUA=no
-    #-Os -pipe -mno-branch-likely -mips32r2 -mtune=24kc -fno-caller-saves -fno-plt -fhonour-copts -msoft-float -mips16 -minterlink-mips16
-    cfl=(-D__Linux26__ -mips32r2 -mtune=24kc -fno-caller-saves -fno-plt -fhonour-copts -msoft-float -mips16 -minterlink-mips16)
-    makelib () {
-      $AR rcs "$@"
-    }
-    ;;
-  openwrt-arm)
-    export BASE="/opt/openwrt/staging_dir"
-    export STAGING_DIR="$BASE/target-arm_cortex-a8+vfpv3_musl-1.1.11_eabi"
-    export PATH="$BASE/toolchain-arm_cortex-a8+vfpv3_gcc-4.8-linaro_musl-1.1.11_eabi/bin:$PATH"
-    ARCHPREFIX=arm-openwrt-linux-muslgnueabi
-    CC=$ARCHPREFIX-gcc
-    CXX=$ARCHPREFIX-g++
-    AR=$ARCHPREFIX-ar
-    LIBLUA=no
-    cfl=(-D__Linux26__)
-    makelib () {
-      $AR rcs "$@"
-    }
-    ;;
-  android-16-arm)
-    path=(/Users/jpc/Applications/android-ndk-r9d/$ARCH/bin $path)
-    ARCHPREFIX=arm-linux-androideabi
-    CC=$ARCHPREFIX-gcc
-    CXX=$ARCHPREFIX-g++
-    AR=$ARCHPREFIX-ar
-    cfl=(-D__Linux26__ -march=armv7-a -mfloat-abi=softfp)
-    makelib () {
-      $AR rcs "$@"
-    }
     ;;
   *)
     echo "Unknown or no platform given: $1"
@@ -140,12 +36,9 @@ elif [[ ! -z $2 ]]; then
   rm -rf $DEST/$2
 fi
 
-cfl=(-ggdb -Os --std=gnu99 -Wall -Wextra -Wno-missing-field-initializers -Wno-unused-parameter -Wno-unused-function $cfl)
-cfl=(-D_LARGEFILE64_SOURCE=1 -D_LARGEFILE_SOURCE=1 $cfl)
 if [[ $LIBLUA != no ]]; then
   cfl=($cfl -Ilua-5.1.5/src)
 fi
-cppfl=($cfl --std=gnu++11)
 TEMP=temp-$ARCH
 
 mkdir -p $DEST
@@ -201,11 +94,11 @@ __attribute__((__unused__)) static struct lconv *localeconv(void)
 EOF
 
   for file in $files; do
-    $CC $cfl -include $TEMP/config.h -o $TEMP/${file:r}.o -c $SRC/${file:r}.c
+    "$TOOLCHAIN"/compile-c $cfl -include $TEMP/config.h -o $TEMP/${file:r}.o -c $SRC/${file:r}.c
   done
 
-  makelib $DEST/liblua.a $TEMP/${^files:r}.o
-  $CC $cfl -include $TEMP/config.h -o $DEST/luac $SRC/luac.c $DEST/liblua.a $ldfl -lm
+  "$TOOLCHAIN"/make-static-lib $DEST/liblua.a $TEMP/${^files:r}.o
+  "$TOOLCHAIN"/compile-c $cfl -include $TEMP/config.h -o $DEST/luac $SRC/luac.c $DEST/liblua.a $ldfl -lm
   cp $SRC/{lauxlib,lualib,luaconf,lua}.h $DEST
 }
 
@@ -220,18 +113,18 @@ build-liblua-socket.a() {
   fi
 
   for file in $files; do
-    $CC $cfl -DNDEBUG -include $DEST/lua_compat52.h -o $TEMP/${file:r}.o -c $SRC/${file:r}.c
+    "$TOOLCHAIN"/compile-c $cfl -DNDEBUG -include $DEST/lua_compat52.h -o $TEMP/${file:r}.o -c $SRC/${file:r}.c
   done
 
-  makelib $DEST/liblua-socket.a $TEMP/${^files}
+  "$TOOLCHAIN"/make-static-lib $DEST/liblua-socket.a $TEMP/${^files}
 }
 
 build-liblua-filesystem.a() {
   SRC=luafilesystem/src
 
-  $CC $cfl -o $TEMP/lfs.o -c $SRC/lfs.c
+  "$TOOLCHAIN"/compile-c $cfl -o $TEMP/lfs.o -c $SRC/lfs.c
 
-  makelib $DEST/liblua-filesystem.a $TEMP/lfs.o
+  "$TOOLCHAIN"/make-static-lib $DEST/liblua-filesystem.a $TEMP/lfs.o
 }
 
 build-liblua-posix.a() {
@@ -263,27 +156,27 @@ EOF
  if [[ $ARCH == android* ]]; then
    wget -O $TEMP/glob.c https://raw.github.com/white-gecko/TokyoCabinet/master/glob.c
    wget -O $TEMP/glob.h https://raw.github.com/white-gecko/TokyoCabinet/master/glob.h
-   $CC $cfl -I$TEMP -o $TEMP/_glob.o -c $TEMP/glob.c
+   "$TOOLCHAIN"/compile-c $cfl -I$TEMP -o $TEMP/_glob.o -c $TEMP/glob.c
  fi
 
- # NEW: $CC $cfl -I$TEMP -I$SRC/ext/include -o $TEMP/posix.o -c $SRC/ext/posix/posix.c
- $CC $cfl -I$TEMP -I$SRC/ext/include -o $TEMP/posix.o -c $SRC/lposix.c
+ # NEW: "$TOOLCHAIN"/compile-c $cfl -I$TEMP -I$SRC/ext/include -o $TEMP/posix.o -c $SRC/ext/posix/posix.c
+ "$TOOLCHAIN"/compile-c $cfl -I$TEMP -I$SRC/ext/include -o $TEMP/posix.o -c $SRC/lposix.c
 
- makelib $DEST/liblua-posix.a $TEMP/posix.o $TEMP/_glob.o(N)
+ "$TOOLCHAIN"/make-static-lib $DEST/liblua-posix.a $TEMP/posix.o $TEMP/_glob.o(N)
 }
 
 build-liblua-udev.a() {
   [[ $LIBUDEV == no ]] && return 0
   SRC=lua-udev
 
-  $CC $cfl -I$DEST -o $TEMP/udev.nobj.o -c $SRC/udev.nobj.c
+  "$TOOLCHAIN"/compile-c $cfl -I$DEST -o $TEMP/udev.nobj.o -c $SRC/udev.nobj.c
 
-  makelib $DEST/liblua-udev.a $TEMP/*.o
+  "$TOOLCHAIN"/make-static-lib $DEST/liblua-udev.a $TEMP/*.o
 }
 
 build-libev.a() {
-  $CC $cfl -DNDEBUG -o $TEMP/ev.o -c ev.c
-  makelib $DEST/libev.a $TEMP/ev.o
+  "$TOOLCHAIN"/compile-c $cfl -DNDEBUG -o $TEMP/ev.o -c ev.c
+  "$TOOLCHAIN"/make-static-lib $DEST/libev.a $TEMP/ev.o
   cat > $DEST/ev.h <<EOF
 #include "../../ev.h"
 EOF
@@ -292,9 +185,9 @@ EOF
 build-liblua-ev.a() {
   SRC=lua-ev
 
-  $CC $cfl -I$DEST -o $TEMP/lua_ev.o -c $SRC/lua_ev.c
+  "$TOOLCHAIN"/compile-c $cfl -I$DEST -o $TEMP/lua_ev.o -c $SRC/lua_ev.c
 
-  makelib $DEST/liblua-ev.a $TEMP/*.o
+  "$TOOLCHAIN"/make-static-lib $DEST/liblua-ev.a $TEMP/*.o
 }
 
 build-liblua-md5.a() {
@@ -304,9 +197,9 @@ build-liblua-md5.a() {
         )
 
   for file in $files; do
-    $CC $cfl -include $DEST/lua_compat52.h -o $TEMP/$file.o -c $SRC/$file.c
+    "$TOOLCHAIN"/compile-c $cfl -include $DEST/lua_compat52.h -o $TEMP/$file.o -c $SRC/$file.c
   done
-  makelib $DEST/liblua-md5.a $TEMP/${^files}.o
+  "$TOOLCHAIN"/make-static-lib $DEST/liblua-md5.a $TEMP/${^files}.o
   cp $SRC/md5.h $DEST/lua-md5.h
 }
 
@@ -345,12 +238,12 @@ EOF
     if [[ ! -e "$srcname" ]]; then
       srcname="$SRC/$srcname"
     fi
-    $CC $cfl -I. -o $type.o -c "$srcname"
+    "$TOOLCHAIN"/compile-c $cfl -I. -o $type.o -c "$srcname"
   done
 
   cd -
 
-  makelib $DEST/libmodpbase64.a $TEMP/${^types}.o
+  "$TOOLCHAIN"/make-static-lib $DEST/libmodpbase64.a $TEMP/${^types}.o
   cp $SRC/modp_${^types}.h $DEST
 }
 
@@ -359,10 +252,10 @@ build-libsha2.a() {
   files=(sha1 sha2)
 
   for file in $files; do
-    $CC $cfl -o $TEMP/$file.o -c $SRC/$file.c
+    "$TOOLCHAIN"/compile-c $cfl -o $TEMP/$file.o -c $SRC/$file.c
   done
 
-  makelib $DEST/libsha2.a $TEMP/${^files}.o
+  "$TOOLCHAIN"/make-static-lib $DEST/libsha2.a $TEMP/${^files}.o
   mkdir -p $DEST/sha2
   cp $SRC/*.h $DEST/sha2
 }
@@ -394,7 +287,7 @@ cat > $TEMP/config.h <<EOF
 EOF
 
   for file in $files; do
-    $CC $cfl $pcfl -o $TEMP/$file.o -c $SRC/$file.c
+    "$TOOLCHAIN"/compile-c $cfl $pcfl -o $TEMP/$file.o -c $SRC/$file.c
   done
 
   cat > $TEMP/mempcpy.c <<EOF
@@ -406,9 +299,9 @@ void *mempcpy(void *dest, const void *src, size_t n) {
   return dest;
 }
 EOF
-  $CC $cfl $pcfl -o $TEMP/mempcpy.o -c $TEMP/mempcpy.c
+  "$TOOLCHAIN"/compile-c $cfl $pcfl -o $TEMP/mempcpy.o -c $TEMP/mempcpy.c
 
-  makelib $DEST/libudev.a $TEMP/${^files}.o $TEMP/mempcpy.o
+  "$TOOLCHAIN"/make-static-lib $DEST/libudev.a $TEMP/${^files}.o $TEMP/mempcpy.o
   cp $SRC/libudev.h $DEST/
 }
 
@@ -421,17 +314,17 @@ build-liblua-winapi.a () {
   cfl=(${cfl:#*UNICODE*} -DPSAPI_VERSION=1)
 
   for file in $files; do
-    $CC $cfl -o $TEMP/$file.o -c $SRC/$file.c
+    "$TOOLCHAIN"/compile-c $cfl -o $TEMP/$file.o -c $SRC/$file.c
   done
 
-  makelib $DEST/liblua-winapi.a $TEMP/${^files}.o
+  "$TOOLCHAIN"/make-static-lib $DEST/liblua-winapi.a $TEMP/${^files}.o
 }
 
 build-libluachecks.a () {
   SRC=luasched/c
 
-  $CC $cfl $flags -o $TEMP/checks.o -c $SRC/checks.c
-  makelib $DEST/libluachecks.a $TEMP/checks.o
+  "$TOOLCHAIN"/compile-c $cfl $flags -o $TEMP/checks.o -c $SRC/checks.c
+  "$TOOLCHAIN"/make-static-lib $DEST/libluachecks.a $TEMP/checks.o
 }
 
 build-liblua-lpeg.a () {
@@ -439,10 +332,10 @@ build-liblua-lpeg.a () {
   files=(lpvm lpcap lptree lpcode lpprint)
 
   for file in $files; do
-    $CC $cfl -I$DEST -o $TEMP/$file.o -c $SRC/$file.c
+    "$TOOLCHAIN"/compile-c $cfl -I$DEST -o $TEMP/$file.o -c $SRC/$file.c
   done
 
-  makelib $DEST/liblua-lpeg.a $TEMP/${^files}.o
+  "$TOOLCHAIN"/make-static-lib $DEST/liblua-lpeg.a $TEMP/${^files}.o
 }
 
 build-liblua-cjson.a () {
@@ -450,10 +343,10 @@ build-liblua-cjson.a () {
   files=(lua_cjson fpconv strbuf)
 
   for file in $files; do
-    $CC $cfl -o $TEMP/$file.o -c $SRC/$file.c
+    "$TOOLCHAIN"/compile-c $cfl -o $TEMP/$file.o -c $SRC/$file.c
   done
 
-  makelib $DEST/liblua-cjson.a $TEMP/${^files}.o
+  "$TOOLCHAIN"/make-static-lib $DEST/liblua-cjson.a $TEMP/${^files}.o
 }
 
 build-liblua-tweetnacl.a () {
@@ -461,10 +354,10 @@ build-liblua-tweetnacl.a () {
   files=(luatweetnacl randombytes tweetnacl)
 
   for file in $files; do
-    $CC $cfl -o $TEMP/$file.o -c $SRC/$file.c
+    "$TOOLCHAIN"/compile-c $cfl -o $TEMP/$file.o -c $SRC/$file.c
   done
 
-  makelib $DEST/liblua-tweetnacl.a $TEMP/${^files}.o
+  "$TOOLCHAIN"/make-static-lib $DEST/liblua-tweetnacl.a $TEMP/${^files}.o
 }
 
 build libev.a

@@ -1,0 +1,50 @@
+#!/bin/sh
+
+if [ $# -lt 5 ]; then
+  echo "Usage:
+  $0 targetdir toolchaindir archprefix dest platform
+"
+  exit 1
+fi
+
+targetdir=$1
+toolchaindir=$2
+archprefix=$3
+dest=$4
+platform=$5
+
+[ -d "$targetdir/pkginfo" ] || { echo "error: no '$targetdir/pkginfo' directory found"; exit 1; }
+[ -e "$toolchaindir/info.mk" ] || { echo "error: no '$toolchaindir/info.mk' file found"; exit 1; }
+[ -x "$toolchaindir/bin/$archprefix-gcc" ] || { echo "error: '$toolchaindir/bin/$archprefix-gcc' does not exist or is not executable"; exit 1; }
+
+rm -rf "$dest" && mkdir -p "$dest" && cd "$dest" || exit 1
+
+makescript() {
+  {
+    cat <<EOF
+#/bin/sh
+export STAGING_DIR="$targetdir"
+export PATH="$toolchaindir/bin:\$PATH"
+EOF
+    cat
+  } > "$1"
+  chmod u+x "$1"
+}
+
+makescript compile-c <<EOF
+$archprefix-gcc $CFLAGS "\$@"
+EOF
+makescript compile-c++ <<EOF
+$archprefix-g++ $CFLAGS $CPPFLAGS "\$@"
+EOF
+makescript link <<EOF
+$archprefix-gcc $LDFLAGS "\$@"
+EOF
+makescript strip <<EOF
+$archprefix-strip -d "\$@"
+EOF
+makescript make-static-lib <<EOF
+$archprefix-ar rcs "\$@"
+EOF
+echo "PLATFORM_STRING=$platform" > platform
+echo "#define PLATFORM_STRING \"$platform\"" > platform.h

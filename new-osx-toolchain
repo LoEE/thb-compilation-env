@@ -1,0 +1,44 @@
+#!/bin/sh
+
+if [ $# -lt 1 ]; then
+  echo "Usage:
+  $0 dest
+"
+  exit 1
+fi
+
+archprefix=llvm
+dest=$1
+platform=osx
+
+[ -x "$(command -v llvm-gcc)" ] || { echo "error: could not find llvm-gcc in path"; exit 1; }
+
+rm -rf "$dest" && mkdir -p "$dest" && cd "$dest" || exit 1
+
+makescript() {
+  {
+    cat <<EOF
+#/bin/sh
+EOF
+    cat
+  } > "$1"
+  chmod u+x "$1"
+}
+
+makescript compile-c <<EOF
+$archprefix-gcc $CFLAGS "\$@"
+EOF
+makescript compile-c++ <<EOF
+$archprefix-g++ $CFLAGS $CPPFLAGS "\$@"
+EOF
+makescript link <<EOF
+$archprefix-gcc $LDFLAGS "\$@"
+EOF
+makescript strip <<EOF
+strip -S "\$@"
+EOF
+makescript make-static-lib <<EOF
+libtool -static -s -o "\$@"
+EOF
+echo "PLATFORM_STRING=$platform" > platform
+echo "#define PLATFORM_STRING \"$platform\"" > platform.h

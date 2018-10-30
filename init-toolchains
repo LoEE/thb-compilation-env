@@ -1,0 +1,23 @@
+#!/bin/sh
+
+CFLAGS="-ggdb -Os --std=gnu99 -Wall -Wextra -Wno-missing-field-initializers -Wno-unused-parameter -Wno-unused-function -D_LARGEFILE64_SOURCE=1 -D_LARGEFILE_SOURCE=1"
+export CPPFLAGS="--std=gnu++11"
+
+CFLAGS="$CFLAGS -DUNICODE -D_UNICODE" \
+  ./new-crosstool-toolchain /usr/local/i686-w64-mingw32-20150524.loee.pl i686-w64-mingw32 toolchains/win32 windows
+CFLAGS="$CFLAGS -DUNICODE -D_UNICODE" \
+  ./new-crosstool-toolchain /usr/local/x86_64-w64-mingw32-20150524.loee.pl x86_64-w64-mingw32 toolchains/win64 windows
+CFLAGS="$CFLAGS -arch x86_64 -mmacosx-version-min=10.7" LDFLAGS="-arch x86_64 -mmacosx-version-min=10.7" \
+  ./new-osx-toolchain toolchains/osx
+CFLAGS="$CFLAGS -D__Linux26__ -DNAME_MAX=FILENAME_MAX -m32" LDFLAGS="-lm" \
+  ./new-crosstool-toolchain /usr/local/i686-loee-linux-gnu-20150122.loee.pl i686-loee-linux-gnu toolchains/linux linux
+CFLAGS="$CFLAGS -D__Linux26__ -DNAME_MAX=FILENAME_MAX -m64" LDFLAGS="-lm" \
+  ./new-crosstool-toolchain /usr/local/x86_64-loee-linux-gnu-20150122.loee.pl x86_64-loee-linux-gnu toolchains/linux64 linux
+CFLAGS="$CFLAGS -D__Linux26__ -DNAME_MAX=FILENAME_MAX -m64" LDFLAGS="-lm" \
+    ./new-crosstool-toolchain /usr/local/Cellar/x86_64-loee-linux-musl/20180622/ x86_64-loee-linux-musl toolchains/linux64-musl linux
+CFLAGS="$CFLAGS -D__Linux26__ -DNAME_MAX=FILENAME_MAX" LDFLAGS="-lm" \
+  ./new-crosstool-toolchain /usr/local/arm-loee-linux-gnueabi-20150122.loee.pl arm-linux-gnueabi toolchains/linux-armhf linux
+# CFLAGS="$CFLAGS -D__Linux26__ -mips32r2 -mtune=24kc -fno-caller-saves -fno-plt -fhonour-copts -msoft-float -mips16 -minterlink-mips16"
+#   ./new-openwrt-toolchain /Volumes/OpenWRT/staging_dir/target-mips_24kc_musl /Volumes/OpenWRT/staging_dir/toolchain-mips_24kc_gcc-7.3.0_musl mips-openwrt-linux toolchains/openwrt-mips linux
+CFLAGS="$CFLAGS -D__Linux26__ -mips32r2 -mtune=24kc -fno-caller-saves -fno-plt -fhonour-copts -msoft-float -mips16 -minterlink-mips16"
+  ./new-openwrt-toolchain /Volumes/OpenWRT/staging_dir/target-mipsel_24kc_musl /Volumes/OpenWRT/staging_dir/toolchain-mipsel_24kc_gcc-7.3.0_musl mipsel-openwrt-linux toolchains/openwrt-mipsel linux

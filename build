@@ -360,6 +360,18 @@ build-liblua-tweetnacl.a () {
   "$TOOLCHAIN"/make-static-lib $DEST/liblua-tweetnacl.a $TEMP/${^files}.o
 }
 
+build-libcodepoint_width.a () {
+  SRC=$PWD/widecharwidth
+  files=(codepoint_width)
+
+  for file in $files; do
+    "$TOOLCHAIN"/compile-c $cfl -o $TEMP/$file.o -c $SRC/$file.c
+  done
+
+  "$TOOLCHAIN"/make-static-lib $DEST/libcodepoint_width.a $TEMP/${^files}.o
+  cp $SRC/codepoint_width.h $DEST/
+}
+
 build libev.a
 build libmodpbase64.a
 build libsha2.a
@@ -377,3 +389,4 @@ build libluachecks.a
 build liblua-lpeg.a
 build liblua-cjson.a
 build liblua-tweetnacl.a
+build libcodepoint_width.a

@@ -43,4 +43,8 @@ makescript make-static-lib <<EOF
 $archprefix-ar rcs "\$@"
 EOF
 echo "PLATFORM_STRING=$platform" > platform
-echo "#define PLATFORM_STRING \"$platform\"" > platform.h
+cat <<EOF > platform.h
+#define PLATFORM_STRING "$platform"
+#define TOOLCHAIN_ARCH "$(basename "$dest")"
+EOF
+echo "$basedir/bin/$archprefix" > archprefix

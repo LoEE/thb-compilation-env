@@ -41,4 +41,8 @@ makescript make-static-lib <<EOF
 libtool -static -s -o "\$@"
 EOF
 echo "PLATFORM_STRING=$platform" > platform
-echo "#define PLATFORM_STRING \"$platform\"" > platform.h
+cat <<EOF > platform.h
+#define PLATFORM_STRING "$platform"
+#define TOOLCHAIN_ARCH "$(basename "$dest")"
+EOF
+echo "$archprefix" > archprefix

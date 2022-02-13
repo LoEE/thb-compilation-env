@@ -44,7 +44,7 @@ trap stmp_cleanup INT EXIT
 
 ln -sfn $PWD/$DEST $TOOLCHAIN/lib
 
-TOOLCHAIN=$(greadlink -f $TOOLCHAIN)
+TOOLCHAIN=$($(command -v greadlink || command -v readlink) -f $TOOLCHAIN)
 
 case $ARCH in
   win*)
@@ -453,6 +453,8 @@ build-libcodepoint_width.a () {
   "$TOOLCHAIN"/make-static-lib $DEST/libcodepoint_width.a $TEMP/${^files}.o
   cp $SRC/codepoint_width.h $DEST/
 }
+
+echo "Building: $ARCH" 2>&1
 
 build libev.a
 build libmodpbase64.a

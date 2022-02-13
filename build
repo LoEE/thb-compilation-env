@@ -213,7 +213,7 @@ build-libev.a() {
   "$TOOLCHAIN"/compile-c $cfl -DNDEBUG -o $TEMP/ev.o -c ev.c
   "$TOOLCHAIN"/make-static-lib $DEST/libev.a $TEMP/ev.o
   cat > $DEST/ev.h <<EOF
-#include "../../ev.h"
+#include "../../libev-4.24/thb-ev.h"
 EOF
 }
 

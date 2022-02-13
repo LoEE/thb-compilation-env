@@ -1,0 +1,55 @@
+[submodule "lua-ev"]
+	path = lua-ev
+	url = ../lua-ev.git
+[submodule "md5"]
+	path = md5
+	url = ../md5.git
+[submodule "lpeg"]
+	path = lpeg
+	url = ../LPeg.git
+[submodule "luafilesystem"]
+	path = luafilesystem
+	url = ../luafilesystem.git
+[submodule "lua-cjson"]
+	path = lua-cjson
+	url = ../lua-cjson.git
+[submodule "luatweetnacl"]
+	path = luatweetnacl
+	url = ../luatweetnacl.git
+[submodule "luaposix"]
+	path = luaposix
+	url = ../luaposix.git
+[submodule "winapi"]
+	path = winapi
+	url = ../winapi.git
+[submodule "lua-udev"]
+	path = lua-udev
+	url = ../lua-udev.git
+[submodule "luasched"]
+	path = luasched
+	url = ../luasched.git
+[submodule "LuaJIT"]
+	path = LuaJIT
+	url = ../LuaJIT.git
+	branch = v2.1
+[submodule "lua-5.1.5"]
+	path = lua-5.1.5
+	url = ../lua-5.1.5.git
+[submodule "libev-4.24"]
+	path = libev-4.24
+	url = ../libev-4.24.git
+[submodule "luasocket"]
+	path = luasocket
+	url = ../luasocket.git
+[submodule "widecharwidth"]
+	path = widecharwidth
+	url = ../widecharwidth.git
+[submodule "udev-182"]
+	path = udev-182
+	url = ../udev.git
+[submodule "stringencoders-v3.10.3"]
+	path = stringencoders-v3.10.3
+	url = ../stringencoders.git
+[submodule "sha2-07-01-07"]
+	path = sha2-07-01-07
+	url = ../sha2-07-01-07.git

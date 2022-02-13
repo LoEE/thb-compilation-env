@@ -1,12 +1,46 @@
 #!/bin/zsh
 
-set -x -e
-
 TOOLCHAIN=$1
 ARCH=$(basename "$TOOLCHAIN")
 DEST=out/$ARCH
 
 [ -x "$TOOLCHAIN"/compile-c ] || { echo "error: "$TOOLCHAIN"/compile-c not found"}
+
+c_green=$(printf '\033[32m')
+c_red=$(printf '\033[31m')
+c_yellow=$(printf '\033[33m')
+c_norm=$(printf '\033[39m')
+
+die() {
+  echo "$c_red$*$c_norm" 1>&2
+  exit 2
+}
+
+mkdir -p "logs/$ARCH"
+
+# shellcheck disable=SC2059
+quiet() {
+  logf="logs/$ARCH/$1"
+  {
+    printf "${c_yellow}%-30s%10s  %s${c_norm}" "$*..." "" "$logf"
+    (set -e -x; "$@") > "$logf" 2>&1
+    RET=$?
+    if [ $RET -eq 0 ]; then
+      printf "\\r${c_green}%-30s%10s${c_norm}  %s\\n" "$*" "" "$logf"
+      return 0
+    fi
+    printf "\\r${c_red}%-30s%10s  %s${c_norm}\\n" "$*" "[FAILED]" "$logf"
+    return $RET
+  } 1>&2
+}
+
+stmp=$(mktemp -d) || die "error: could not create a temporary directory"
+stmp_cleanup() {
+  rm -r "$stmp"
+}
+trap stmp_cleanup INT EXIT
+
+
 
 ln -sfn $PWD/$DEST $TOOLCHAIN/lib
 
@@ -48,7 +82,7 @@ build() {
     return
   fi
   mkdir -p $TEMP
-  (build-$1) || echo "building $1 failed"
+  quiet build-$1
   rm -r $TEMP
 }
 

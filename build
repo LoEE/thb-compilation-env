@@ -393,6 +393,55 @@ build-liblua-tweetnacl.a () {
   "$TOOLCHAIN"/make-static-lib $DEST/liblua-tweetnacl.a $TEMP/${^files}.o
 }
 
+build-libluajit-single-arch () {
+  mkdir -p $DEST
+  rm -rf $DEST/LuaJIT-src
+  cp -r $SRC $DEST/LuaJIT-src
+  arch_src=$DEST/LuaJIT-src
+  . "$TOOLCHAIN/platform"
+  case $PLATFORM_STRING in
+    osx) sys=Darwin targets=($arch_src/src/libluajit.{a,so}) install=install;;
+    windows) sys=Windows targets=$arch_src/src/lua51.dll ;;
+    linux) sys=Linux targets=($arch_src/src/libluajit.{a,so}) install=install;;
+  esac
+  MACOSX_DEPLOYMENT_TARGET=10.10 make -C $arch_src TARGET_SYS="$sys" $host32bit TARGET_FLAGS="$lj_target_flags" HOST_CC="gcc $luajit_cflags" CROSS="$cross" PREFIX=$(pwd)/$DEST/LuaJIT/ all $install
+}
+
+build-libluajit () {
+  SRC=$PWD/LuaJIT
+
+  case $ARCH; in
+    openwrt-*)
+      #(. "$TOOLCHAIN"/env; ln -sfn "$STAGING_DIR/root-ramips/usr/share/luajit-2.1.0-beta3/jit/" $DEST/lualib-luajit)
+      ;;
+  esac
+
+  [[ $LIBLUA == no ]] && return 0
+
+  cross="$(cat "$TOOLCHAIN/archprefix")-"
+  case $TOOLCHAIN in
+    *64*) bits=64 ;;
+    *osx) bits=64 cross= ;;
+    *) bits=32 host32bit="BUILDVM_T=host/buildvm-remote" ;;
+  esac
+
+  case $TOOLCHAIN in
+    *osx)
+      lj_target_flags="-arch x86_64" DEST="$DEST/x86_64" build-libluajit-single-arch
+      lj_target_flags="-arch arm64" DEST="$DEST/arm64" build-libluajit-single-arch
+      lipo -create $DEST/{x86_64,arm64}/LuaJIT/lib/libluajit-5.1.a -output $DEST/libluajit-5.1.a
+      ln -sfn $(pwd)/$DEST/x86_64/LuaJIT/share/luajit-2.1.0-beta3 $DEST/lualib-luajit
+      ;;
+    *)
+      build-libluajit-single-arch
+      ln -sfn $(pwd)/$DEST/LuaJIT/lib/libluajit-5.1.a $DEST/
+      ln -sfn $(pwd)/$DEST/LuaJIT/share/luajit-2.1.0-beta3 $DEST/lualib-luajit
+      ;;
+  esac
+
+  touch $DEST/libluajit
+}
+
 build-libcodepoint_width.a () {
   SRC=$PWD/widecharwidth
   files=(codepoint_width)
@@ -411,6 +460,7 @@ build libsha2.a
 build libudev.a
 
 build liblua.a
+build libluajit
 build liblua-socket.a
 build liblua-filesystem.a
 build liblua-md5.a

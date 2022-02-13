@@ -170,6 +170,8 @@ build-liblua-posix.a() {
 #define PACKAGE_NAME "luaposix"
 #define PACKAGE_STRING "luaposix 33.4.0"
 #define VERSION "5.1.24"
+#define HAVE_SYS_STATVFS_H 1
+#define HAVE_STATVFS 1
 
 #if defined(__ANDROID__)
 #include <string.h>

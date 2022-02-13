@@ -210,10 +210,11 @@ build-liblua-udev.a() {
 }
 
 build-libev.a() {
-  "$TOOLCHAIN"/compile-c $cfl -DNDEBUG -o $TEMP/ev.o -c ev.c
+  SRC=libev-4.24
+  "$TOOLCHAIN"/compile-c $cfl -DNDEBUG -o $TEMP/ev.o -c $SRC/thb-ev.c
   "$TOOLCHAIN"/make-static-lib $DEST/libev.a $TEMP/ev.o
   cat > $DEST/ev.h <<EOF
-#include "../../libev-4.24/thb-ev.h"
+#include "../../$SRC/thb-ev.h"
 EOF
 }
 

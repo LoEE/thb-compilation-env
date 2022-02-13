@@ -1,0 +1,3 @@
+#!/bin/sh
+
+parallel --eta -j8 'rm -rf out/$(basename {}) && ./build {}' ::: toolchains/*

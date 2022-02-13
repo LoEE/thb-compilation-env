@@ -56,8 +56,7 @@ case $ARCH in
     ;;
   linux*)
     ;;
-  openwrt-mips*)
-    LIBLUA=no
+  openwrt-*)
     ;;
   *)
     echo "Unknown or no platform given: $1"

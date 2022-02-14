@@ -42,7 +42,7 @@ TODO: use separate directories for each configuration so we can paralelize the b
 ```shell
 multipass launch -n thb-vm32
 multipass mount . thb-vm32
-multipass exec thb-vm32 -- sudo $PWD/setup-multipass-guest
+multipass exec thb-vm32 -- sudo $($(command -v greadlink || command -v readlink) -f "$PWD")/setup-multipass-guest
 ```
 
 4. GNU parallel which speeds the build process up significantly:

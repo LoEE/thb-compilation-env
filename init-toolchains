@@ -21,6 +21,8 @@ CFLAGS="$CFLAGS -D__Linux26__ -DNAME_MAX=FILENAME_MAX" LDFLAGS="-lm" \
   ./new-crosstool-toolchain /usr/local/cross.loee.pl/armv7-loee-linux-gnueabihf-2021-03-20 armv7-loee-linux-gnueabihf toolchains/linux-armhf linux
 CFLAGS="$CFLAGS -D__Linux26__ -DNAME_MAX=FILENAME_MAX" LDFLAGS="-lm" \
   ./new-crosstool-toolchain /usr/local/cross.loee.pl/arm-loee-linux-gnueabi-2021-03-20 arm-loee-linux-gnueabi toolchains/linux-armv5 linux
+CFLAGS="$CFLAGS -D__Linux26__ -DNAME_MAX=FILENAME_MAX" LDFLAGS="-lm" \
+  ./new-crosstool-toolchain /usr/local/cross.loee.pl/armv7-loee-linux-musleabihf-2021-03-20 armv7-loee-linux-musleabihf toolchains/linux-armhf-musl linux
 
 CFLAGS="$CFLAGS -D__Linux26__ -DNAME_MAX=FILENAME_MAX -m64" LDFLAGS="-lm" \
   ./new-crosstool-toolchain /usr/local/cross.loee.pl/x86_64-loee-linux-musl-2021-03-20 x86_64-loee-linux-musl toolchains/linux64-musl linux

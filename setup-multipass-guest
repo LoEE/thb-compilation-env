@@ -6,10 +6,10 @@ apt-get install -y qemu-user-binfmt gcc-10-i686-linux-gnu make
 
 dpkg --add-architecture i386
 grep -q 'deb \[arch=i386\]' /etc/apt/sources.list || cat >> /etc/apt/sources.list <<EOF
-deb [arch=i386] http://security.ubuntu.com/ubuntu/ focal-security  main restricted universe multiverse
-deb [arch=i386]  http://archive.ubuntu.com/ubuntu/ focal           main restricted universe multiverse
-deb [arch=i386]  http://archive.ubuntu.com/ubuntu/ focal-updates   main restricted universe multiverse
-deb [arch=i386]  http://archive.ubuntu.com/ubuntu/ focal-backports main restricted universe multiverse
+deb [arch=i386] http://security.ubuntu.com/ubuntu/ jammy-security  main restricted universe multiverse
+deb [arch=i386]  http://archive.ubuntu.com/ubuntu/ jammy           main restricted universe multiverse
+deb [arch=i386]  http://archive.ubuntu.com/ubuntu/ jammy-updates   main restricted universe multiverse
+deb [arch=i386]  http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse
 EOF
 apt-get update || true
 apt-get install -y libc6:i386

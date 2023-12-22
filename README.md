@@ -27,6 +27,8 @@ git clone https://github.com/LoEE/crosstool-ng
 cd crosstool-ng
 diskutil apfs addVolume disk3 'Case-sensitive APFS' crosstool
 ./bootstrap
+homebrew install binutils
+ln -s /opt/homebrew/opt/binutils/bin/gobjcopy /opt/homebrew/bin
 CPPFLAGS="-I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/ncurses/include" LDFLAGS="-L/opt/homebrew/opt/gettext/lib -L/opt/homebrew/opt/ncurses/lib" LIBS=-lintl LIBTOOL=/opt/homebrew/bin/glibtool ./configure --enable-local
 make
 ./build-all
